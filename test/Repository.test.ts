@@ -69,4 +69,32 @@ layer(Repository.Default)((it) => {
       const deletedUser = yield* repository.deleteUser({ userId: user.userId })
       expect(Option.getOrNull(deletedUser)).toMatchObject({ userId: user.userId })
     }))
+
+  it.effect("should create organization", () =>
+    Effect.gen(function*() {
+      const repository = yield* Repository
+      const name = "foo"
+      const newOrg = yield* repository.createOrganization({ name })
+      expect(newOrg).toMatchObject({ name })
+
+      const deletedOrg = yield* repository.deleteOrganization({ organizationId: newOrg.organizationId })
+      expect(Option.getOrNull(deletedOrg)).toMatchObject({ organizationId: newOrg.organizationId })
+    }))
+
+  // it.effect("should  create membrtship", () =>
+  //   Effect.gen(function*() {
+  //     const repository = yield* Repository
+  //     const organization = yield* repository.createOrganization({ name: "foo" })
+  //     const user = yield* repository.createUser({ email: "delete@mail.com", role: "customer" })
+  //     const membership = yield* repository.createMembership({
+  //       organizationId: organization.organizationId,
+  //       userId: user.userId,
+  //       role: "admin"
+  //     })
+  //     expect(membership).toMatchObject({
+  //       organizationId: organization.organizationId,
+  //       userId: user.userId,
+  //       role: "admin"
+  //     })
+  //   }))
 })
