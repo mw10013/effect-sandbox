@@ -1,7 +1,7 @@
 import { SqlClient } from "@effect/sql"
 import { SqliteClient } from "@effect/sql-sqlite-node"
 import { Effect, Option, Schema } from "effect"
-import { Organization, User } from "./Application.js"
+import { Membership, Organization, User } from "./Application.js"
 
 const SqliteLive = SqliteClient.layer({
   filename: "./test.db",
@@ -18,35 +18,45 @@ export class Repository extends Effect.Service<Repository>()(
         setUp: () =>
           Effect.gen(function*() {
             yield* sql`pragma foreign_keys = on`
+
+            yield* sql`drop table if exists memberships`
+            yield* sql`drop table if exists organization`
             yield* sql`drop table if exists users`
+            yield* sql`drop table if exists membership_roles`
+            yield* sql`drop table if exists roles`
+
+            yield* sql`create table if not exists roles (
+              role_id text primary key
+            )`
+            yield* sql`create table if not exists membership_roles (
+              membership_role_id text primary key
+            )`
+
             yield* sql`create table if not exists users (
               user_id integer primary key,
               email text not null unique,
               name text not null default '', 
               role text not null references roles (role_id)
             )`
-            yield* sql`drop table if exists roles`
-            yield* sql`create table if not exists roles (
-              role_id text primary key
-            )`
-            yield* sql`drop table if exists organization`
             yield* sql`create table if not exists organization (
               organization_id integer primary key,
               name text not null
             )`
 
-            yield* sql`drop table if exists memberships`
             yield* sql`create table if not exists memberships (
               member_id integer primary key,
               role text,
               organization_id integer not null references organization (organization_id) on delete cascade,
-              user_id integer references users (user_id) on delete cascade)`
+              user_id integer references users (user_id) on delete cascade,
+              membership_role references membership_roles (membership_role_id))`
 
             yield* sql`insert into roles (role_id) values ('admin'), ('customer')`
+            yield* sql`insert into membership_roles (membership_role_id) values ('owner'), ('member')`
           }),
         getUsers: () =>
           Effect.gen(function*() {
-            return yield* sql`select * from users`
+            const rows = yield* sql`select * from users`
+            return yield* Schema.decodeUnknown(Schema.Array(User))(rows)
           }),
         getUser: ({ email }: Pick<typeof User.Type, "email">) =>
           Effect.gen(function*() {
@@ -88,6 +98,18 @@ export class Repository extends Effect.Service<Repository>()(
           Effect.gen(function*() {
             const [row] = yield* sql`delete from organization where organization_id = ${organizationId} returning *`
             return Option.fromNullable(row ? yield* Schema.decodeUnknown(Organization)(row) : null)
+          }),
+
+        createMembership: (
+          { membershipRole, organizationId, userId }: Pick<
+            typeof Membership.Type,
+            "organizationId" | "userId" | "membershipRole"
+          >
+        ) =>
+          Effect.gen(function*() {
+            const [row] =
+              yield* sql`insert into memberships (organization_id, user_id, membership_role) values (${organizationId}, ${userId}, ${membershipRole}) returning *`
+            return yield* Schema.decodeUnknown(Membership)(row)
           })
       }
     }),

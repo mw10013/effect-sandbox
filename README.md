@@ -4,6 +4,7 @@
 - struggling with ts query buildersLhttps://discord.com/channels/795981131316985866/1255890174638948442
 - sql with d1: https://github.com/Effect-TS/effect/issues/2700
 - https://www.typescript-validators.com/effect-schema
+- https://blitzjs.com/docs/multitenancy
 
 # Effect Package Template
 

@@ -81,20 +81,36 @@ layer(Repository.Default)((it) => {
       expect(Option.getOrNull(deletedOrg)).toMatchObject({ organizationId: newOrg.organizationId })
     }))
 
-  // it.effect("should  create membrtship", () =>
-  //   Effect.gen(function*() {
-  //     const repository = yield* Repository
-  //     const organization = yield* repository.createOrganization({ name: "foo" })
-  //     const user = yield* repository.createUser({ email: "delete@mail.com", role: "customer" })
-  //     const membership = yield* repository.createMembership({
-  //       organizationId: organization.organizationId,
-  //       userId: user.userId,
-  //       role: "admin"
-  //     })
-  //     expect(membership).toMatchObject({
-  //       organizationId: organization.organizationId,
-  //       userId: user.userId,
-  //       role: "admin"
-  //     })
-  //   }))
+  it.effect("should create membership", () =>
+    Effect.gen(function*() {
+      const repository = yield* Repository
+      const organization = yield* repository.createOrganization({ name: "membership-test-org" })
+      const user = yield* repository.createUser({ email: "membership-test-owner@mail.com", role: "customer" })
+      const ownerMembership = yield* repository.createMembership({
+        organizationId: organization.organizationId,
+        userId: user.userId,
+        membershipRole: "owner"
+      })
+      expect(ownerMembership).toMatchObject({
+        organizationId: organization.organizationId,
+        userId: user.userId
+      })
+      const memberMembership = yield* repository.createMembership({
+        organizationId: organization.organizationId,
+        userId: user.userId,
+        membershipRole: "member"
+      })
+      expect(memberMembership).toMatchObject({
+        organizationId: organization.organizationId,
+        userId: user.userId
+      })
+    }))
+
+  it.effect("should get users", () =>
+    Effect.gen(function*() {
+      const repository = yield* Repository
+      const users = yield* repository.getUsers()
+      console.log({ users })
+      expect(users.length).toBeGreaterThanOrEqual(1)
+    }))
 })

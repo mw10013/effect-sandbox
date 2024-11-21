@@ -10,6 +10,15 @@ export const assertsRole: Schema.Schema.ToAsserts<typeof RoleSchema> = Schema.as
 // const value = Schema.decodeUnknownSync(RoleSchema)("customer")
 // console.log({ value, roles })
 
+const MembershipRoleSchema = Schema.Literal("owner", "member")
+export type MembershipRole = typeof MembershipRoleSchema.Type
+export const membershipRoles = MembershipRoleSchema.literals
+export const isMembershipRole = Schema.is(MembershipRoleSchema)
+
+export const assertsMembershipRole: Schema.Schema.ToAsserts<typeof MembershipRoleSchema> = Schema.asserts(
+  MembershipRoleSchema
+)
+
 export class User extends Schema.Class<User>("User")({
   userId: Schema.Number,
   email: Schema.String,
@@ -24,7 +33,7 @@ export class Organization extends Schema.Class<Organization>("Organization")({
 
 export class Membership extends Schema.Class<Membership>("Membership")({
   memberId: Schema.Number,
-  // role: RoleSchema,
+  membershipRole: MembershipRoleSchema,
   organizationId: Schema.Number,
   userId: Schema.Number
   // invitedById: Schema.Number
