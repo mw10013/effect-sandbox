@@ -81,12 +81,14 @@ export class Repository extends Effect.Service<Repository>()(
 
         getOrganization: ({ organizationId }: Pick<typeof Organization.Type, "organizationId">) =>
           Effect.gen(function*() {
-            const [row] = yield* sql`select o.*, 
-(select json_group_array(json_object('organization_id', organization_id, 'userId', user_id, 'membershipRole', membership_role)) 
-from memberships where organization_id = o.organization_id) as memberships 
+            const [row] = yield* sql`select json_object('organizationId', organization_id, 'name', name, 'memberships', 
+(select json_group_array(json_object('organizationId', organization_id, 'userId', user_id, 'membershipRole', membership_role)) 
+from memberships where organization_id = o.organization_id)) as data
 from organizations o where organization_id = ${organizationId}`
             console.log({ row })
-            return Option.fromNullable(row ? yield* Schema.decodeUnknown(OrganizationAggregate)(row) : null)
+            return Option.fromNullable(
+              row ? yield* Schema.decodeUnknown(Schema.parseJson(OrganizationAggregate))(row.data) : null
+            )
           }),
 
         createOrganization: ({ name }: Pick<typeof Organization.Type, "name">) =>
