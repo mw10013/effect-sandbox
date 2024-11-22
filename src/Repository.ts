@@ -1,7 +1,7 @@
 import { SqlClient } from "@effect/sql"
 import { SqliteClient } from "@effect/sql-sqlite-node"
 import { Effect, Option, Schema } from "effect"
-import { Membership, Organization, User } from "./Application.js"
+import { Membership, Organization, OrganizationAggregate, User } from "./Application.js"
 
 const SqliteLive = SqliteClient.layer({
   filename: "./test.db",
@@ -20,7 +20,7 @@ export class Repository extends Effect.Service<Repository>()(
             yield* sql`pragma foreign_keys = on`
 
             yield* sql`drop table if exists memberships`
-            yield* sql`drop table if exists organization`
+            yield* sql`drop table if exists organizations`
             yield* sql`drop table if exists users`
             yield* sql`drop table if exists membership_roles`
             yield* sql`drop table if exists roles`
@@ -38,17 +38,16 @@ export class Repository extends Effect.Service<Repository>()(
               name text not null default '', 
               role text not null references roles (role_id)
             )`
-            yield* sql`create table if not exists organization (
+            yield* sql`create table if not exists organizations (
               organization_id integer primary key,
               name text not null
             )`
 
             yield* sql`create table if not exists memberships (
-              member_id integer primary key,
-              role text,
-              organization_id integer not null references organization (organization_id) on delete cascade,
-              user_id integer references users (user_id) on delete cascade,
-              membership_role references membership_roles (membership_role_id))`
+              organization_id integer not null references organizations (organization_id) on delete cascade,
+              user_id integer not null references users (user_id) on delete cascade,
+              membership_role not null references membership_roles (membership_role_id),
+              primary key (organization_id, user_id))`
 
             yield* sql`insert into roles (role_id) values ('admin'), ('customer')`
             yield* sql`insert into membership_roles (membership_role_id) values ('owner'), ('member')`
@@ -61,14 +60,6 @@ export class Repository extends Effect.Service<Repository>()(
         getUser: ({ email }: Pick<typeof User.Type, "email">) =>
           Effect.gen(function*() {
             const [row] = yield* sql`select * from users where email = ${email}`
-            return Option.fromNullable(row ? yield* Schema.decodeUnknown(User)(row) : null)
-          }),
-        getUser1: ({ email }: Pick<typeof User.Type, "email">) =>
-          Effect.gen(function*() {
-            const [row] = yield* sql`select * from users where email = ${email}`
-            // return Schema.decodeUnknownOption(User)(row)
-            // return Option.map(Option.fromNullable(row), (row) => Schema.decodeUnknown(User)(row))
-            // return yield* Schema.decodeUnknown(User)(row)
             return Option.fromNullable(row ? yield* Schema.decodeUnknown(User)(row) : null)
           }),
         createUser: ({ email, role }: Pick<typeof User.Type, "email" | "role">) =>
@@ -88,15 +79,25 @@ export class Repository extends Effect.Service<Repository>()(
             return Option.fromNullable(row ? yield* Schema.decodeUnknown(User)(row) : null)
           }),
 
+        getOrganization: ({ organizationId }: Pick<typeof Organization.Type, "organizationId">) =>
+          Effect.gen(function*() {
+            const [row] = yield* sql`select o.*, 
+(select json_group_array(json_object('organization_id', organization_id, 'userId', user_id, 'membershipRole', membership_role)) 
+from memberships where organization_id = o.organization_id) as memberships 
+from organizations o where organization_id = ${organizationId}`
+            console.log({ row })
+            return Option.fromNullable(row ? yield* Schema.decodeUnknown(OrganizationAggregate)(row) : null)
+          }),
+
         createOrganization: ({ name }: Pick<typeof Organization.Type, "name">) =>
           Effect.gen(function*() {
-            const [row] = yield* sql`insert into organization (name) values (${name}) returning *`
+            const [row] = yield* sql`insert into organizations (name) values (${name}) returning *`
             return yield* Schema.decodeUnknown(Organization)(row)
           }),
 
         deleteOrganization: ({ organizationId }: Pick<typeof Organization.Type, "organizationId">) =>
           Effect.gen(function*() {
-            const [row] = yield* sql`delete from organization where organization_id = ${organizationId} returning *`
+            const [row] = yield* sql`delete from organizations where organization_id = ${organizationId} returning *`
             return Option.fromNullable(row ? yield* Schema.decodeUnknown(Organization)(row) : null)
           }),
 

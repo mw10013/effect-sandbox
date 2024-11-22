@@ -37,16 +37,6 @@ layer(Repository.Default)((it) => {
       expect(Option.isNone(user2)).toBeTruthy()
     }))
 
-  it.effect("should get user1", () =>
-    Effect.gen(function*() {
-      const repository = yield* Repository
-      const user = yield* repository.getUser1({ email })
-      expect(Option.getOrNull(user)).toMatchObject({ email })
-
-      const user2 = yield* repository.getUser1({ email: email + email })
-      expect(Option.isNone(user2)).toBeTruthy()
-    }))
-
   it.effect("should update user email", () =>
     Effect.gen(function*() {
       const repository = yield* Repository
@@ -85,24 +75,25 @@ layer(Repository.Default)((it) => {
     Effect.gen(function*() {
       const repository = yield* Repository
       const organization = yield* repository.createOrganization({ name: "membership-test-org" })
-      const user = yield* repository.createUser({ email: "membership-test-owner@mail.com", role: "customer" })
+      const owner = yield* repository.createUser({ email: "membership-test-owner@mail.com", role: "customer" })
       const ownerMembership = yield* repository.createMembership({
         organizationId: organization.organizationId,
-        userId: user.userId,
+        userId: owner.userId,
         membershipRole: "owner"
       })
       expect(ownerMembership).toMatchObject({
         organizationId: organization.organizationId,
-        userId: user.userId
+        userId: owner.userId
       })
+      const member = yield* repository.createUser({ email: "membership-test-member@mail.com", role: "customer" })
       const memberMembership = yield* repository.createMembership({
         organizationId: organization.organizationId,
-        userId: user.userId,
+        userId: member.userId,
         membershipRole: "member"
       })
       expect(memberMembership).toMatchObject({
         organizationId: organization.organizationId,
-        userId: user.userId
+        userId: member.userId
       })
     }))
 
@@ -110,7 +101,14 @@ layer(Repository.Default)((it) => {
     Effect.gen(function*() {
       const repository = yield* Repository
       const users = yield* repository.getUsers()
-      console.log({ users })
       expect(users.length).toBeGreaterThanOrEqual(1)
+    }))
+
+  it.effect("should get organization", () =>
+    Effect.gen(function*() {
+      const repository = yield* Repository
+      const organization = yield* repository.getOrganization({ organizationId: 1 })
+      console.log(organization)
+      expect(Option.getOrNull(organization)).toMatchObject({ organizationId: 1 })
     }))
 })

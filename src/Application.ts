@@ -7,9 +7,6 @@ export const isRole = Schema.is(RoleSchema)
 
 export const assertsRole: Schema.Schema.ToAsserts<typeof RoleSchema> = Schema.asserts(RoleSchema)
 
-// const value = Schema.decodeUnknownSync(RoleSchema)("customer")
-// console.log({ value, roles })
-
 const MembershipRoleSchema = Schema.Literal("owner", "member")
 export type MembershipRole = typeof MembershipRoleSchema.Type
 export const membershipRoles = MembershipRoleSchema.literals
@@ -32,11 +29,11 @@ export class Organization extends Schema.Class<Organization>("Organization")({
 }) {}
 
 export class Membership extends Schema.Class<Membership>("Membership")({
-  memberId: Schema.Number,
-  membershipRole: MembershipRoleSchema,
   organizationId: Schema.Number,
-  userId: Schema.Number
-  // invitedById: Schema.Number
+  userId: Schema.Number,
+  membershipRole: MembershipRoleSchema
 }) {}
 
-// console.log(User.make({ userId: 1, email: "foo", name: "bar", role: "customer" }))
+export class OrganizationAggregate extends Organization.extend<OrganizationAggregate>("OrganizationAggregate")({
+  memberships: Schema.Array(Membership)
+}) {}
