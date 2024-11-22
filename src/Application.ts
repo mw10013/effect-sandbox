@@ -34,6 +34,11 @@ export class Membership extends Schema.Class<Membership>("Membership")({
   membershipRole: MembershipRoleSchema
 }) {}
 
+export class MembershipAggregate extends Membership.extend<MembershipAggregate>("MembershipAggregate")({
+  userEmail: Schema.String,
+  userName: Schema.String
+}) {}
+
 export class OrganizationAggregate extends Organization.extend<OrganizationAggregate>("OrganizationAggregate")({
-  memberships: Schema.Array(Membership)
+  memberships: Schema.Array(MembershipAggregate)
 }) {}

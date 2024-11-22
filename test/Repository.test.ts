@@ -108,7 +108,6 @@ layer(Repository.Default)((it) => {
     Effect.gen(function*() {
       const repository = yield* Repository
       const organization = yield* repository.getOrganization({ organizationId: 1 })
-      console.log(organization)
       expect(Option.getOrNull(organization)).toMatchObject({ organizationId: 1 })
     }))
 })
